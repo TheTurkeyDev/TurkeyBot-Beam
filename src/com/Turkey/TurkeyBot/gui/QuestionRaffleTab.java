@@ -5,6 +5,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
@@ -19,9 +20,12 @@ public class QuestionRaffleTab extends Tab implements ActionListener
 	private JLabel winnerName;
 	private JLabel keywordLabel;
 	private JTextField keywordField;
+	private JCheckBox followersOnlyBox;
+	private JLabel followersOnlyLabel;
 	
 	private static String answer = "";
 	private static boolean isRunning = false;
+	private static boolean followersOnly;
 
 	public QuestionRaffleTab()
 	{
@@ -34,6 +38,16 @@ public class QuestionRaffleTab extends Tab implements ActionListener
 		keywordField.setLocation(100, 25);
 		keywordField.setSize(200,25);
 		super.add(keywordField);
+		
+		followersOnlyLabel = new JLabel("Only Allow Follower to enter?");
+		followersOnlyLabel.setLocation(45, 65);
+		followersOnlyLabel.setSize(250, 25);
+		super.add(followersOnlyLabel);
+
+		followersOnlyBox = new JCheckBox();
+		followersOnlyBox.setLocation(25, 65);
+		followersOnlyBox.setSize(20,20);
+		super.add(followersOnlyBox);
 
 		startEntry = new JButton("Start Entry Period");
 		startEntry.setLocation(375, 25);
@@ -93,6 +107,7 @@ public class QuestionRaffleTab extends Tab implements ActionListener
 				winnerName.setText("");
 				answer = keywordField.getText();
 				isRunning = true;
+				followersOnly = followersOnlyBox.isSelected();
 				Gui.reloadTab();
 			}
 			else

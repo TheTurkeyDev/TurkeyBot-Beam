@@ -5,6 +5,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JTextArea;
@@ -24,6 +25,8 @@ public class KeyWordRaffleTab extends Tab implements ActionListener
 	private JLabel keywordLabel;
 	private JTextField keywordField;
 	private JTextArea entered;
+	private JLabel followersOnlyLabel;
+	private JCheckBox followersOnly;
 
 	private static KeyWordRaffle currentRaffle;
 
@@ -38,6 +41,16 @@ public class KeyWordRaffleTab extends Tab implements ActionListener
 		keywordField.setLocation(100, 25);
 		keywordField.setSize(200,25);
 		super.add(keywordField);
+		
+		followersOnlyLabel = new JLabel("Only Allow Follower to enter?");
+		followersOnlyLabel.setLocation(45, 65);
+		followersOnlyLabel.setSize(250, 25);
+		super.add(followersOnlyLabel);
+
+		followersOnly = new JCheckBox();
+		followersOnly.setLocation(25, 65);
+		followersOnly.setSize(20,20);
+		super.add(followersOnly);
 
 		entered = new JTextArea();
 		entered.setLocation(25, 100);
@@ -84,6 +97,7 @@ public class KeyWordRaffleTab extends Tab implements ActionListener
 			pickWinner.setVisible(false);
 			endEntry.setVisible(true);
 			keywordField.setEditable(false);
+			followersOnly.setVisible(false);
 		}
 		else
 		{
@@ -91,6 +105,7 @@ public class KeyWordRaffleTab extends Tab implements ActionListener
 			startEntry.setVisible(true);
 			pickWinner.setVisible(true);
 			keywordField.setEditable(true);
+			followersOnly.setVisible(true);
 		}
 
 		if(currentRaffle != null && currentRaffle.getEntries().size() > 0)
@@ -106,7 +121,6 @@ public class KeyWordRaffleTab extends Tab implements ActionListener
 		super.setVisible(false);
 	}
 
-
 	@Override
 	public void actionPerformed(ActionEvent e)
 	{
@@ -117,6 +131,7 @@ public class KeyWordRaffleTab extends Tab implements ActionListener
 				winnerName.setText("");
 				currentRaffle = new KeyWordRaffle(keywordField.getText());
 				currentRaffle.setRunning(true);
+				currentRaffle.setFollowersOnly(followersOnly.isSelected());
 				Gui.getBot().sendMessage("A Raffle has started! To enter simply type: " + currentRaffle.getKeyWord());
 				Gui.reloadTab();
 			}
