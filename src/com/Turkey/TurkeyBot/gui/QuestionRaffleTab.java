@@ -39,7 +39,7 @@ public class QuestionRaffleTab extends Tab implements ActionListener
 		keywordField.setSize(200,25);
 		super.add(keywordField);
 		
-		followersOnlyLabel = new JLabel("Only Allow Follower to enter?");
+		followersOnlyLabel = new JLabel("Only Allow Followers to enter?");
 		followersOnlyLabel.setLocation(45, 65);
 		followersOnlyLabel.setSize(250, 25);
 		super.add(followersOnlyLabel);
