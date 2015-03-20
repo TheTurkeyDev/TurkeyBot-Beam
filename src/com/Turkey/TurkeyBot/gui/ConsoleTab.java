@@ -7,6 +7,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -78,7 +79,7 @@ public class ConsoleTab extends Tab implements KeyListener, ActionListener
 
 	public void load()
 	{
-		if(Gui.getBot().getChannel(false).equals(""))
+		if(Gui.getBot().getChannel().equals(""))
 		{
 			joinButton.setText("Join");
 			streamToJoin.setEditable(true);
@@ -90,12 +91,12 @@ public class ConsoleTab extends Tab implements KeyListener, ActionListener
 		{
 			joinButton.setText("Leave");
 			streamToJoin.setEditable(false);
-			viewersList.append("Viewers: " +  Gui.getBot().getViewers().size() + " \n");
-			viewersList.append("---------------------------------- \n");
-			for(String s: Gui.getBot().getViewers())
-			{
-				viewersList.append(s + " \n");
-			}
+			//viewersList.append("Viewers: " +  Gui.getBot().getViewers().size() + " \n");
+			//viewersList.append("---------------------------------- \n");
+			//for(String s: Gui.getBot().getViewers())
+			//{
+			//	viewersList.append(s + " \n");
+			//}
 		}
 		
 		super.setVisible(true);
@@ -166,21 +167,7 @@ public class ConsoleTab extends Tab implements KeyListener, ActionListener
 				}
 				cancel = false;
 			}
-			else if(e.getKeyCode() == 18)
-			{
-				String[] args = consoleEntry.getText().split(" ");
-				String fullName = Gui.getBot().getFullUserName(args[args.length-1]);
-				if(fullName != "")
-				{
-					args[args.length-1] = fullName;
-					String msg = "";
-					for(String s: args)
-					{
-						msg += s + " ";
-					}
-					consoleEntry.setText(msg);
-				}
-			}
+			
 			if(cancel)
 			{
 				currentString = consoleEntry.getText();
@@ -200,11 +187,22 @@ public class ConsoleTab extends Tab implements KeyListener, ActionListener
 		if(e.getSource().equals(joinButton))
 		{
 			TurkeyBot bot = Gui.getBot();
-			if(bot.getChannel(false).equals(""))
+			if(bot.getChannel().equals(""))
 			{
 				if(!streamToJoin.getText().equals(""))
 				{
-					bot.connectToChannel(streamToJoin.getText());
+					try
+					{
+						bot.connectToChannel(streamToJoin.getText());
+					} catch (InterruptedException e1)
+					{
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					} catch (ExecutionException e1)
+					{
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 					Gui.reloadTab();
 				}
 			}

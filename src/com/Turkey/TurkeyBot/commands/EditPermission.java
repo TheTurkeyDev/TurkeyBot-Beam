@@ -10,7 +10,7 @@ public class EditPermission extends Command
 		super(n, "");
 	}
 
-	public void oncommand(TurkeyBot bot,String channel, String sender, String login, String hostname, String message)
+	public void oncommand(TurkeyBot bot, String sender, String message)
 	{
 		String[] contents = message.split(" ");
 		if(contents.length != 3)

@@ -9,7 +9,7 @@ public class AutoTurtleCommand extends Command
 		super(n, "");
 	}
 
-	public void oncommand(TurkeyBot bot,String channel, String sender, String login, String hostname, String message)
+	public void oncommand(TurkeyBot bot, String sender, String message)
 	{
 		bot.sendMessage("First MooBot, Then TurkeyBot, now autoTurtle? Man its becoming a zoo in here.");
 	}

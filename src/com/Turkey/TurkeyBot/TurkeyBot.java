@@ -8,9 +8,23 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
-import org.jibble.pircbot.PircBot;
-import org.jibble.pircbot.User;
+import pro.beam.api.BeamAPI;
+import pro.beam.api.resource.BeamUser;
+import pro.beam.api.resource.chat.BeamChat;
+import pro.beam.api.resource.chat.BeamChatConnectable;
+import pro.beam.api.resource.chat.events.EventHandler;
+import pro.beam.api.resource.chat.events.IncomingMessageEvent;
+import pro.beam.api.resource.chat.events.data.IncomingMessageData.MessagePart;
+import pro.beam.api.resource.chat.events.data.IncomingMessageData.MessagePart.Type;
+import pro.beam.api.resource.chat.methods.AuthenticateMessage;
+import pro.beam.api.resource.chat.methods.ChatSendMethod;
+import pro.beam.api.resource.chat.replies.AuthenticationReply;
+import pro.beam.api.resource.chat.replies.ReplyHandler;
+import pro.beam.api.response.users.UserSearchResponse;
+import pro.beam.api.services.impl.ChatService;
+import pro.beam.api.services.impl.UsersService;
 
 import com.Turkey.TurkeyBot.chat.AutoAnnouncement;
 import com.Turkey.TurkeyBot.chat.ModerateChat;
@@ -28,19 +42,16 @@ import com.Turkey.TurkeyBot.commands.MooBotCommand;
 import com.Turkey.TurkeyBot.commands.NightBotCommand;
 import com.Turkey.TurkeyBot.commands.SlotsCommand;
 import com.Turkey.TurkeyBot.commands.StatusCommand;
-import com.Turkey.TurkeyBot.commands.UpdateTitleCommand;
 import com.Turkey.TurkeyBot.commands.WinnerCommand;
 import com.Turkey.TurkeyBot.commands.upTimeCommand;
 import com.Turkey.TurkeyBot.files.AccountSettings;
 import com.Turkey.TurkeyBot.files.AnnouncementFile;
 import com.Turkey.TurkeyBot.files.ChatSettings;
 import com.Turkey.TurkeyBot.files.CurrencyFile;
-import com.Turkey.TurkeyBot.files.Followers;
 import com.Turkey.TurkeyBot.files.ResponseSettings;
 import com.Turkey.TurkeyBot.files.SettingsFile;
 import com.Turkey.TurkeyBot.gui.ConsoleTab;
 import com.Turkey.TurkeyBot.gui.ConsoleTab.Level;
-import com.Turkey.TurkeyBot.gui.Gui;
 import com.Turkey.TurkeyBot.gui.KeyWordRaffleTab;
 import com.Turkey.TurkeyBot.gui.QuestionRaffleTab;
 import com.Turkey.TurkeyBot.util.CurrencyThread;
@@ -50,7 +61,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-public class TurkeyBot extends PircBot
+public class TurkeyBot
 {
 	public static final String VERSION = "Beta 1.0.0";
 
@@ -68,19 +79,23 @@ public class TurkeyBot extends PircBot
 	public ChatSettings chatSettings;
 	public ResponseSettings spamResponseFile;
 	public AccountSettings accountSettingsFile;
-	public Followers followersFile;
 	public CurrencyThread currencyTrack;
 	public AnnouncementFile announceFile;
 
 	private ModerateChat chatmoderation;
 	private AutoAnnouncement announcer;
 
-	private String[] mods;
 	private ArrayList<String> viewers;
 
 	private List<String> bypass = new ArrayList<String>();
 
 	public static JsonParser json;
+	public static BeamAPI beam;
+	private BeamUser user;
+	public BeamUser connectedChannel;
+	private BeamChat chat;
+	private BeamChatConnectable connectable;
+
 
 	private boolean connected = false;
 
@@ -90,12 +105,11 @@ public class TurkeyBot extends PircBot
 	 */
 	public TurkeyBot() throws Exception
 	{
-		//this.setVerbose(true);
+		beam = new BeamAPI();
 		json = new JsonParser();
 		loadFiles();
 		currencyName = settings.getSetting("CurrencyName");
 		loadCommands();
-		setMessageDelay(1550);
 		chatmoderation = new ModerateChat(this);
 	}
 
@@ -132,7 +146,6 @@ public class TurkeyBot extends PircBot
 		commands.put("!editPermission".toLowerCase(), new EditPermission("EditPermission"));
 		commands.put("!deleteCommand".toLowerCase(), new DeleteCommand("DeleteCommand"));
 		commands.put("!commandstatus".toLowerCase(), new StatusCommand("commandStatus"));
-		commands.put("!setTitle".toLowerCase(), new UpdateTitleCommand("SetTitle"));
 		commands.put("!nightbot".toLowerCase(), new NightBotCommand("NightBot"));
 		commands.put("!moobot".toLowerCase(), new MooBotCommand("MooBot"));
 		commands.put("!funwaybot".toLowerCase(), new FunWayBotCommand("Funwaybot"));
@@ -180,10 +193,10 @@ public class TurkeyBot extends PircBot
 	/**
 	 * Called when a message is sent in a chat that the bot is in.
 	 */
-	public void onMessage(String channel, String sender, String login, String hostname, String message) 
+	public void onMessage(String sender, String message, String perm) 
 	{
 		ConsoleTab.output(Level.Chat, "[" + sender + "] " + message);
-		if(!chatmoderation.isValidChat(message, sender))
+		if(!chatmoderation.isValidChat(message, sender, perm))
 			return;
 		int index = message.indexOf(" ");
 		if(index < 1)
@@ -191,11 +204,11 @@ public class TurkeyBot extends PircBot
 		if(commands.containsKey(message.substring(0, index).toLowerCase()))
 		{
 			Command command = commands.get(message.substring(0, index).toLowerCase());
-			if(command.isEnabled() && hasPermission(sender, command.getPermissionLevel()) && (!lastCommand.equalsIgnoreCase(command.getName()) || (lastCommandTime == 0 || System.currentTimeMillis() - lastCommandTime > 3000)))
+			if(command.isEnabled() && command.getPermissionLevel().equalsIgnoreCase(perm) && (!lastCommand.equalsIgnoreCase(command.getName()) || (lastCommandTime == 0 || System.currentTimeMillis() - lastCommandTime > 3000)))
 			{
 				lastCommand = command.getName();
 				lastCommandTime = System.currentTimeMillis();
-				command.oncommand(this, channel, sender, login, hostname, message);
+				command.oncommand(this, sender, message);
 			}
 		}
 		else if(message.equalsIgnoreCase("!Disconnect") && (sender.equalsIgnoreCase(stream.substring(1)) || sender.equalsIgnoreCase("turkey2349")))
@@ -206,7 +219,16 @@ public class TurkeyBot extends PircBot
 		{
 			String lastchannel = stream.substring(1);
 			disconnectFromChannel();
-			connectToChannel(lastchannel);
+			try
+			{
+				connectToChannel(lastchannel);
+			} catch (InterruptedException e)
+			{
+				e.printStackTrace();
+			} catch (ExecutionException e)
+			{
+				e.printStackTrace();
+			}
 		}
 		/*else if(message.equalsIgnoreCase("!Commands") || message.equalsIgnoreCase("!Help"))
 		{
@@ -219,7 +241,7 @@ public class TurkeyBot extends PircBot
 				}
 			}
 			sendMessage(toSend);
-		}*/
+		}
 		else if((message.substring(0, index).equalsIgnoreCase("!Add"+currencyName) && sender.equalsIgnoreCase(stream.substring(1)))&& this.hasPermission(sender, "Streamer"))
 		{
 			String[] args = message.split(" ");
@@ -239,7 +261,7 @@ public class TurkeyBot extends PircBot
 				}
 				sendMessage("Gave " + ammount + " " + currencyName + " to everyone!");
 			}
-		}
+		}*/
 
 		if(KeyWordRaffleTab.getCurrentRaffle() != null && KeyWordRaffleTab.getCurrentRaffle().isRunning())
 		{
@@ -259,47 +281,6 @@ public class TurkeyBot extends PircBot
 	}
 
 	/**
-	 * Used to listen for private messages.
-	 * Currently used to listen for the mod list call back.
-	 */
-	public void onPrivateMessage(String sender, String login, String hostname, String message)
-	{
-		try{
-			if(message.contains("The moderators"))
-			{
-				message = message.substring(message.indexOf(":") + 2);
-				message += ", " + stream.substring(stream.indexOf("#") + 1);
-				mods = message.split(", ");
-				ConsoleTab.output(Level.Info, "TurkeyBot has received the list of Mods for this channel!");
-			}
-		}catch(Exception e){ConsoleTab.output(Level.Error, "An Error Has occured while getting the mods of this channel");};
-	}
-
-	/**
-	 * Called when someone join the channel that the bot is in.
-	 */
-	public void onJoin(String channel, String sender, String login, String hostname) 
-	{
-		if(!viewers.contains(sender))
-		{
-			viewers.add(sender);
-			Gui.reloadTab();
-		}
-	}
-
-	/**
-	 * Called when someone join the channel that the bot is in.
-	 */
-	public void onPart(String channel, String sender, String login, String hostname) 
-	{
-		if(viewers.contains(sender))
-		{
-			viewers.remove(sender);
-			Gui.reloadTab();
-		}
-	}
-
-	/**
 	 * Sends a message from the bot to the chat it is currently in.
 	 * Also auto outputs the message in the console.
 	 * @param msg The message to be sent to the chat.
@@ -308,101 +289,76 @@ public class TurkeyBot extends PircBot
 	{
 		ConsoleTab.output(Level.Chat, "["+ botName + "] " + msg);
 		if(stream != "" || !this.settings.getSettingAsBoolean("isSilent"))
-			this.sendMessage(stream, msg);
+			connectable.send(ChatSendMethod.of(msg));
 	}
 
-	/**
-	 * Connects the bot to the Twitch servers.
-	 */
-	public void connectToTwitch()
-	{
-		ConsoleTab.output(Level.Info, "Connecting to twitch....");
-		if(!accountSettingsFile.getSetting("AccountName").replaceAll(" ", "").equals(""))
-		{
-			try{
-				botName = accountSettingsFile.getSetting("AccountName");
-				setName(botName);
-				connect("irc.twitch.tv", 6667, SecretStuff.oAuth);
-				connected = true;
-			}catch(Exception e){connected = false; ConsoleTab.output(Level.Error, "Could not connect to Twitch! \n" + e.getMessage());return;}
-			ConsoleTab.output(Level.Info, "Connected!");
-		}
-		else
-		{
-			ConsoleTab.output(Level.Important, "No account entered for the bot to connect to!");
-			ConsoleTab.output(Level.Important, "Please enter this info into: Settings -> Acount Settings");
-			ConsoleTab.output(Level.Important, "Then connect the bot to twitch by entering /connect");
-		}
-		//connectToChannel("turkey2349");
-	}
-
-	public void onDisconnect()
-	{
-		disconnectFromTwitch();
-		ConsoleTab.output(Level.Important, "This may be due to incorrect account information! Please check to make sure these are correct!");
-	}
-
-	/**
-	 * Disconnects the bot from the Twitch servers.
-	 */
-	public void disconnectFromTwitch()
-	{
-		this.quitServer();
-		this.dispose();
-		connected = false;
-		ConsoleTab.output(Level.Alert, "Disconnected from Twitch!");
-	}
 
 	/**
 	 * Connects the bot to the specified channel.
 	 * Auto handles if the Bot is already in a channel or is not connected to the twitch server.
 	 * @param channel The channel for the bot to connect to.
+	 * @throws ExecutionException 
+	 * @throws InterruptedException 
 	 */
-	public void connectToChannel(String channel)
+	public void connectToChannel(String channel) throws InterruptedException, ExecutionException
 	{
 		ConsoleTab.clearConsole();
-		if(!connected)
+		try{
+			user = beam.use(UsersService.class).login(this.accountSettingsFile.getSetting("Username"), SecretStuff.password).get();
+		}catch(ExecutionException e){ConsoleTab.output(Level.Alert, "Failed To login to beam! check your login credentials!");return;}
+		UserSearchResponse search = beam.use(UsersService.class).search(channel).get();
+		if(search.size() > 0)
 		{
-			ConsoleTab.output(Level.Alert, "You must first connect to twitch with /connect!");
+			connectedChannel = beam.use(UsersService.class).findOne(search.get(0).id).get();
+		}
+		else
+		{
+			System.out.println("Size 0");
 			return;
 		}
-		if(stream!="")
-			disconnectFromChannel();
-		stream = "#"+channel;
-		joinChannel(stream);
-		ConsoleTab.output(Level.Info, "Connected to " + stream.substring(1) + "'s channel!");
-		if(settings.getSettingAsBoolean("TrackFollowers"))
+		chat = beam.use(ChatService.class).findOne(connectedChannel.channel.id).get();
+		connectable = chat.makeConnectable(beam);
+
+		boolean connected = connectable.connectBlocking();
+
+		if (connected)
 		{
-			try
-			{
-				followersFile = new Followers(this);
-				followersFile.initFollowerTracker();
-			} catch (IOException e){ConsoleTab.output(Level.Error, "Unable to create the Followers File!");
-			} catch (IllegalStateException e){disconnectFromChannel();ConsoleTab.output(Level.Error, "The channel you tried to connect to is invalid!");return;}
+			connectable.send(AuthenticateMessage.from(connectedChannel.channel, user, chat.authkey), new ReplyHandler<AuthenticationReply>() 
+					{
+				@Override
+				public void onSuccess(AuthenticationReply reply) 
+				{
+					ConsoleTab.output(Level.Info, "Authenticated on Beam!");
+				}
+					});
 		}
-		if(!settings.getSetting("AutoCurrencyDelay").equalsIgnoreCase("-1"))
-		{
-			try
+		connectable.on(IncomingMessageEvent.class, new EventHandler<IncomingMessageEvent>() 
+				{
+			@Override
+			public void onEvent(IncomingMessageEvent event) 
 			{
-				currencyTrack = new CurrencyThread(Integer.parseInt(settings.getSetting("AutoCurrencyDelay")), Integer.parseInt(settings.getSetting("AutoCurrencyAmount")), this);
-				currencyTrack.initCurrencyThread();
-			} catch (NumberFormatException e){disconnectFromChannel();ConsoleTab.output(Level.Error, "Your Auto Currency Settings are invalid!");return;}
-		}
+				String msg = "";
+				for(MessagePart msgp: event.data.message)
+				{
+					if(msgp.type.equals(Type.LINK))
+					{
+						sendMessage(spamResponseFile.getSetting("LinkMessage"));
+						return;
+					}
+					msg+=msgp.data;
+				}
+				onMessage(event.data.user_name, msg, event.data.user_role);
+			}
+				});
+		stream = channel;
 		if(!settings.getSetting("AnnounceDelay").equals("-1"))
 		{
 			announcer = new AutoAnnouncement(this);
 		}
+
+		ConsoleTab.output(Level.Info, "Connected to " + stream + "'s channel!");
 		if(!settings.getSettingAsBoolean("SilentJoinLeave"))
-		{
-			if(!botName.equalsIgnoreCase("TurkeyChatBot"))
-				this.sendMessage("Hello I am TurkeyBot! errrr I mean, I am " + botName.substring(0, 1).toUpperCase() + botName.substring(1) + "!");
-			else
-				this.sendMessage("Hello I am TurkeyBot");
-		}
-		else
-			ConsoleTab.output(Level.Alert, "Connected to the channel silently!");
-		this.sendMessage(stream, "/mods");
-		loadViewers();
+			this.sendMessage("Hello I am TurkeyBot");
 	}
 
 	/**
@@ -410,19 +366,16 @@ public class TurkeyBot extends PircBot
 	 */
 	public void disconnectFromChannel()
 	{
+		connectable.close();
 		if(!settings.getSettingAsBoolean("SilentJoinLeave"))
 			this.sendMessage("GoodBye!");
 		else
 			ConsoleTab.output(Level.Alert, "Disconnected to the channel silently!");
-		this.partChannel(stream);
 		ConsoleTab.output(Level.Alert, "Disconnected from " + stream.substring(1) + "'schannel!");
-		if(followersFile != null)
-			followersFile.stopFollowerTracker();
 		if(currencyTrack != null)
 			currencyTrack.stopThread();
 		announcer.stop();
 		stream = "";
-		mods = new String[0];
 	}
 
 	/**
@@ -440,11 +393,9 @@ public class TurkeyBot extends PircBot
 	 * Gets the current channel the bot is in.
 	 * @return The name on the current channel the bot is in.
 	 */
-	public String getChannel(boolean includeSymbol)
+	public String getChannel()
 	{
-		if(includeSymbol || stream == "")
-			return stream;
-		return stream.substring(1);
+		return stream;
 	}
 
 	/**
@@ -461,7 +412,7 @@ public class TurkeyBot extends PircBot
 	 */
 	public void loadViewers()
 	{
-		JsonObject obj = json.parse(HTTPConnect.GetResponsefrom("https://tmi.twitch.tv/group/user/" + this.getChannel(false) + "/chatters")).getAsJsonObject();
+		JsonObject obj = json.parse(HTTPConnect.GetResponsefrom("https://tmi.twitch.tv/group/user/" + this.getChannel() + "/chatters")).getAsJsonObject();
 		viewers = new ArrayList<String>();
 		obj = obj.get("chatters").getAsJsonObject();
 		JsonArray mods = obj.get("moderators").getAsJsonArray();
@@ -479,62 +430,6 @@ public class TurkeyBot extends PircBot
 			viewers.add(globalMod.get(i).getAsString());
 		for(int i = 0; i < watchers.size(); i++)
 			viewers.add(watchers.get(i).getAsString());
-	}
-
-	/**
-	 * Returns whether or not the user is in the channel.
-	 * @param name The username to check for in the viewer list.
-	 * @return Whether or not the user is in the chat.
-	 */
-	public boolean isUser(String name)
-	{
-		for(User u: getUsers(stream))
-		{
-			if(u.getNick().toLowerCase().equalsIgnoreCase(name.toLowerCase()))
-				return true;
-		}
-		return false;
-	}
-
-	/**
-	 * Gets the list of mods for the current channel.
-	 * @return List of mods of the current channel.
-	 */
-	public String[] getMods()
-	{
-		return mods;
-	}
-
-	/**
-	 * Returns whether or not the given username is a valid mod of the channel.
-	 * @param username The user name to check for in the mods list.
-	 * @return Whether this username is a mod in the current channel.
-	 */
-	public boolean isMod(String un)
-	{
-		if(mods == null)
-			return false;
-		for(String s: mods)
-		{
-			if(s.equalsIgnoreCase(un) || un.equalsIgnoreCase("turkey2349"))
-				return true;
-		}
-		return false;
-	}
-
-	/**
-	 * Returns the current permission level of the given username.
-	 * @param user The username to get the permission level of.
-	 * @return The permission level of the given username.
-	 */
-	public String getPermLevel(String user)
-	{
-		if(user.equalsIgnoreCase(stream.substring(1)) || user.equalsIgnoreCase("turkey2349"))
-			return "Streamer";
-		else if(isMod(user))
-			return "Mod";
-		else
-			return "User";
 	}
 
 	/**
@@ -559,41 +454,6 @@ public class TurkeyBot extends PircBot
 		else
 			return false;
 		return true;
-	}
-
-	/**
-	 * Returns if the given user name has the given permission or greater.
-	 * @param user The user name to check for the given permission on.
-	 * @param perm The perm to check if the given username has access to.
-	 * @return If the given play has a permission level at or above the given permission level.
-	 */
-	public boolean hasPermission(String user, String perm)
-	{
-		if(user.equalsIgnoreCase(stream.substring(1)) || user.equalsIgnoreCase("turkey2349")|| user.equalsIgnoreCase("funwayguy"))
-			return true;
-		else if(isMod(user) && (perm.equalsIgnoreCase("Mod") || perm.equalsIgnoreCase("User")))
-			return true;
-		else if(!isMod(user) && perm.equalsIgnoreCase("User"))
-			return true;
-		else 
-			return false;
-	}
-
-	/**
-	 * Returns the full username for the given begging of a name.
-	 * @param username The partial username to use to check for a full version of.
-	 * @return The full username if one could be found. blank if non found.
-	 */
-	public String getFullUserName(String un)
-	{
-		for(String user: getViewers())
-		{
-			if(user.startsWith(un))
-			{
-				return user;
-			}
-		}
-		return "";
 	}
 
 	/**

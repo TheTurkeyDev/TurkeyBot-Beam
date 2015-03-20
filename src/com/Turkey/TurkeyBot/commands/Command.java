@@ -64,7 +64,7 @@ public class Command
 	 * @param hostname Twitch by default as we are on twitch servers if moderating a stream.
 	 * @param message The full message entered.
 	 */
-	public void oncommand(TurkeyBot bot,String channel, String sender, String login, String hostname, String message)
+	public void oncommand(TurkeyBot bot, String sender, String message)
 	{
 		if(responses.size() == 0)
 			return;

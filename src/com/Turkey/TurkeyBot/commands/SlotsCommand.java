@@ -14,7 +14,7 @@ public class SlotsCommand extends Command
 	private String[] emotes = {"BibleThump", "BloodTrail", "FrankerZ", "MrDestructoid", "SSSsss", "PJSalt", "Kappa"};
 	private int trys;
 
-	public void oncommand(TurkeyBot bot,String channel, String sender, String login, String hostname, String message)
+	public void oncommand(TurkeyBot bot, String sender, String message)
 	{
 		if(bot.currency.getCurrencyFor(sender) > 0)
 		{

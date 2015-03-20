@@ -51,10 +51,10 @@ public class Viewers extends Tab
 					if(x == 0)
 						rows[y][x] = viewer;
 					else if(x == 1)
-						rows[y][x] = bot.getPermLevel(viewer);
+						rows[y][x] = "User";
 					else if(x == 2)
 					{
-						String response = bot.followersFile.getSetting(viewer);
+						String response = null;
 						response= response!=null ? response.replaceAll("\"", ""): null;
 						SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 						format.setTimeZone(TimeZone.getTimeZone("GMT"));

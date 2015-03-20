@@ -38,7 +38,7 @@ public class CurrencyFile extends BotFile
 	{
 		if(!properties.containsKey(name))
 		{
-			if(bot.followersFile.isFollower(name))
+			//if(bot.followersFile.isFollower(name))
 			properties.put(name, "" + (1000 + ammount));
 		}
 		else

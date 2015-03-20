@@ -19,7 +19,7 @@ public class MathCommand extends Command
 	
 	public static boolean isMathQuestion = false;
 	
-	public void oncommand(TurkeyBot bot,String channel, String sender, String login, String hostname, String message)
+	public void oncommand(TurkeyBot bot, String sender, String message)
 	{
 		isMathQuestion = true;
 		String[] operations = new String[4];

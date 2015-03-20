@@ -12,7 +12,6 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 
 import com.Turkey.TurkeyBot.TurkeyBot;
-import com.Turkey.TurkeyBot.files.Followers;
 
 public class Gui extends JFrame implements ActionListener
 {
@@ -164,14 +163,11 @@ public class Gui extends JFrame implements ActionListener
 			@Override
 			public void windowClosing(java.awt.event.WindowEvent windowEvent) 
 			{
-				if(!bot.settings.getSettingAsBoolean("SilentJoinLeave") && !bot.getChannel(false).equalsIgnoreCase(""))
+				if(!bot.settings.getSettingAsBoolean("SilentJoinLeave") && !bot.getChannel().equalsIgnoreCase(""))
 					bot.sendMessage("GoodBye!!!");
 				System.exit(0);
-				Followers.run = false;
 			}	
 		});
-
-		b.connectToTwitch();
 		//ConsoleTab.output(Level.Alert, "Type /connect to connect to twitch!");
 		this.revalidate();
 	}

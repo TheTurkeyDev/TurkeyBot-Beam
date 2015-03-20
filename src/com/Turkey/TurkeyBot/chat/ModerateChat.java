@@ -1,13 +1,7 @@
 package com.Turkey.TurkeyBot.chat;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.commons.validator.routines.UrlValidator;
 
 import com.Turkey.TurkeyBot.TurkeyBot;
 
@@ -26,27 +20,6 @@ public class ModerateChat
 		bot = b;
 
 		blackList = bot.chatSettings.getSetting("WordBlackList").split(",");
-		try{
-			URL url = new URL("https://api.twitch.tv/kraken/chat/turkey2349/emoticons");
-			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-			connection.setRequestMethod("GET");
-			BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-			String line = "";
-			String result = "";
-			while((line = reader.readLine()) != null)
-			{
-				result += line + "\n";
-			}
-			reader.close();
-
-			int index = result.indexOf("regex");
-			while(index > -1)
-			{
-				result=result.substring(index+8);
-				emotes.add(result.substring(0,result.indexOf("\"")));
-				index = result.indexOf("regex");
-			}
-		}catch(Exception e){};
 	}
 
 	/**
@@ -55,10 +28,10 @@ public class ModerateChat
 	 * @param sender the username that sent the message
 	 * @return if the message is ok or false if it should be filtered
 	 */
-	public boolean isValidChat(String m, String sender)
+	public boolean isValidChat(String m, String sender, String perm)
 	{
 		message = m.split(" ");
-		if(bot.isMod(sender) || bot.checkForImmunity(sender))
+		if(perm.equalsIgnoreCase("Mod") || bot.checkForImmunity(sender))
 		{
 			return true;
 		}
@@ -74,13 +47,6 @@ public class ModerateChat
 				bot.sendMessage(bot.spamResponseFile.getSetting("BlockedWordMessage"));
 			if(error == ErrorType.Emotes)
 				bot.sendMessage(bot.spamResponseFile.getSetting("EmotesMessage"));
-			bot.sendMessage("/timeout "+ sender + " 1");
-			return false;
-		}
-		if((error = passesLinkCheck()) != ErrorType.None)
-		{
-			bot.sendMessage(bot.spamResponseFile.getSetting("LinkMessage"));
-			bot.sendMessage("/timeout "+ sender + " 1");
 			return false;
 		}
 
@@ -153,35 +119,6 @@ public class ModerateChat
 		if(( symbolsMin != -1 && symbols > symbolsMin) && (symbolsPercent != -1 && (((double) symbols / (double)charecters)*100) > symbolsPercent))
 			return ErrorType.Sybols;
 		
-		return ErrorType.None;
-	}
-
-	/**
-	 * Checks for possible links in the chat message.
-	 * @return ErrorType.Link if a link is used or ErrorType.None is chat message has no links.
-	 */
-	public ErrorType passesLinkCheck()
-	{
-		//TODO: Need a better way to check for valid links. Also needs to check for links within words.
-		if(!Boolean.parseBoolean(bot.chatSettings.getSetting("BlockLinks")))
-		{
-			return ErrorType.None;
-		}
-		for(String word: message)
-		{
-			if(word.contains("."))
-			{
-				int index = word.indexOf(".");
-				if(index > 0 && index < word.length()-1)
-				{
-					UrlValidator validator = new UrlValidator();
-					if(!word.contains("http://") && !word.contains("https://"))
-						word="http://"+word;
-					if(validator.isValid(word))
-						return ErrorType.Link;
-				}
-			}
-		}
 		return ErrorType.None;
 	}
 

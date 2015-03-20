@@ -11,7 +11,7 @@ import com.Turkey.TurkeyBot.TurkeyBot;
 
 public class AccountSettings extends BotFile
 {
-	private static String propName = "AccountSettings.properties";
+	private static String propName = "BeamAccountSettings.properties";
 
 	public AccountSettings(TurkeyBot b) throws IOException
 	{
@@ -37,8 +37,8 @@ public class AccountSettings extends BotFile
 				properties.setProperty(key, defaultproperties.getProperty(key));
 			}
 		}
-		if(properties.get("AccountOAuth") != null)
-			SecretStuff.oAuth = (String) properties.get("AccountOAuth");
+		if(properties.get("Password") != null)
+			SecretStuff.password = properties.getProperty("Password");
 		
 		save();
 	}

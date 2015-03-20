@@ -14,7 +14,7 @@ public class WinnerCommand extends Command
 		super(n, "");
 	}
 
-	public void oncommand(TurkeyBot bot,String channel, String sender, String login, String hostname, String message)
+	public void oncommand(TurkeyBot bot, String sender, String message)
 	{
 		ArrayList<String> viewers = Gui.getBot().getViewers();
 		Random r = new Random();

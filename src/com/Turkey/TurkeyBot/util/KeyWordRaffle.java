@@ -35,7 +35,7 @@ public class KeyWordRaffle
 
 	public void addEntry(String name)
 	{
-		if(isFollowersOnly() && Gui.getBot().followersFile.isFollower(name.toLowerCase()))
+		if(isFollowersOnly())
 				entries.add(name);
 		else if(!isFollowersOnly())
 			entries.add(name);

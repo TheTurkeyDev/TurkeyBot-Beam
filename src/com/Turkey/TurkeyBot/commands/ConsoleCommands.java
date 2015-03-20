@@ -1,5 +1,7 @@
 package com.Turkey.TurkeyBot.commands;
 
+import java.util.concurrent.ExecutionException;
+
 import com.Turkey.TurkeyBot.gui.ConsoleTab;
 import com.Turkey.TurkeyBot.gui.Gui;
 import com.Turkey.TurkeyBot.gui.ConsoleTab.Level;
@@ -24,7 +26,18 @@ public class ConsoleCommands
 			{
 				if(args.length == 2)
 				{
-					Gui.getBot().connectToChannel(args[1].toLowerCase());
+					try
+					{
+						Gui.getBot().connectToChannel(args[1].toLowerCase());
+					} catch (InterruptedException e)
+					{
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (ExecutionException e)
+					{
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
 				else 
 				{
@@ -44,14 +57,6 @@ public class ConsoleCommands
 					msg+=s + " ";
 				}
 				Gui.getBot().sendMessage(msg);
-			}
-			else if(command.equalsIgnoreCase("connect"))
-			{
-				Gui.getBot().connectToTwitch();
-			}
-			else if(command.equalsIgnoreCase("disconnect"))
-			{
-				Gui.getBot().disconnectFromTwitch();
 			}
 			else
 			{

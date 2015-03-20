@@ -11,6 +11,8 @@ import javax.swing.JLabel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextArea;
 
+import com.Turkey.TurkeyBot.SecretStuff;
+
 public class AccountSettingsTab extends Tab implements ActionListener
 {
 	private static final long serialVersionUID = 1L;
@@ -35,7 +37,7 @@ public class AccountSettingsTab extends Tab implements ActionListener
 		save.addActionListener(this);
 		super.add(save);
 
-		namelabel = new JLabel("Account Name");
+		namelabel = new JLabel("Username");
 		namelabel.setLocation(0, 20);
 		namelabel.setSize(200, 25);
 		namelabel.setVisible(true);
@@ -43,15 +45,15 @@ public class AccountSettingsTab extends Tab implements ActionListener
 		components.add(namelabel);
 
 		nametext = new JTextArea();
-		nametext.setName("AccountName");
+		nametext.setName("Username");
 		nametext.setLocation(100, 25);
 		nametext.setSize(200, 15);
 		nametext.setVisible(true);
-		nametext.setText(Gui.getBot().accountSettingsFile.getSetting("AccountName"));
+		nametext.setText(Gui.getBot().accountSettingsFile.getSetting("Username"));
 		super.add(nametext);
 		components.add(nametext);
 
-		oAuthlabel = new JLabel("Account oAuth");
+		oAuthlabel = new JLabel("Password");
 		oAuthlabel.setLocation(0, 40);
 		oAuthlabel.setSize(200, 25);
 		oAuthlabel.setVisible(true);
@@ -59,11 +61,11 @@ public class AccountSettingsTab extends Tab implements ActionListener
 		components.add(oAuthlabel);
 
 		oAuthtext = new JPasswordField();
-		oAuthtext.setName("AccountOAuth");
+		oAuthtext.setName("Password");
 		oAuthtext.setLocation(100, 45);
 		oAuthtext.setSize(200, 15);
 		oAuthtext.setVisible(true);
-		oAuthtext.setText(Gui.getBot().accountSettingsFile.getSetting("AccountOAuth"));
+		oAuthtext.setText(Gui.getBot().accountSettingsFile.getSetting("Password"));
 		super.add(oAuthtext);
 		components.add(oAuthtext);
 	}
@@ -83,14 +85,13 @@ public class AccountSettingsTab extends Tab implements ActionListener
 	 */
 	public void saveSettings()
 	{
-		for(JComponent comp: components)
-		{
-			if(comp instanceof JTextArea)
-			{
-				if(((JTextArea) comp).getText() != null)
-					Gui.getBot().accountSettingsFile.setSetting(comp.getName(), ((JTextArea) comp).getText());
-			}
-		}
+		Gui.getBot().accountSettingsFile.setSetting("Username", nametext.getText());
+		String pass = "";
+		char[] chars = oAuthtext.getPassword();
+		for(char c: chars)
+			pass+=c;
+		Gui.getBot().accountSettingsFile.setSetting("Password", pass);
+		SecretStuff.password = pass;
 	}
 
 	@Override
